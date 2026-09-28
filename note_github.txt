@@ -1,0 +1,17 @@
+1. lav ny repository, navngiv efter projektet
+
+2. git add .
+
+3.  git commit -am "skriv whatever"
+
+4. git remote add origin https://github.com/profil/repository
+
+5. git push origin main
+
+nu er projektet push'd til github
+
+Hver gang ændringer push'es, gør jeg følgende:
+
+1. git add .
+2. git commit -m "tilføj besked efter ønske"
+3. git push origin main

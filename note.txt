@@ -1,3 +1,11 @@
 1. npx create-next-app@latest newsapp --typescript --tailwind --eslint
 -npm i
 skaber projekt med: Next, Tailwind, TypeScript,
+
+2. laver folders til components, pages, hooks og tilføjer useRequestedData.ts
+
+3. laver en Header og Footer
+
+4. går i gang med styling af Header, Footer og frontpage
+
+5. Prøv at hente data ind til frontpage
