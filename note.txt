@@ -6,6 +6,10 @@ skaber projekt med: Next, Tailwind, TypeScript,
 
 3. laver en Header og Footer
 
-4. går i gang med styling af Header, Footer og frontpage
+4. Tilføjer font
 
-5. Prøv at hente data ind til frontpage
+5. går i gang med styling af Header, Footer og frontpage
+
+7. Opsætning af forsiden
+
+8. Prøv at hente data ind til frontpage
