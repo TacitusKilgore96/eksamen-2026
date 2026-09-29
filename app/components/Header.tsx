@@ -8,10 +8,10 @@ const Header = () => {
         <nav className='flex justify-between p-5 [&_a]:hover:bg-white [&_a]:hover:text-black [&_a]:p-2 [&_a]:transition-all [&_a]:duration-250 [&_a]:ease-in-out [&_a]:hover:rounded-tl-2xl'>
             <a href="#" className='text-5xl'>...news</a>
             <div className='flex gap-5 text-xl'>
-                <a href="#">Nyheder</a>
-                <a href="#">Sport</a>
-                <a href="#">Vejret</a>
-                <a href="#">Podcast</a>
+                <a href="/">Nyheder</a>
+                <a href="/sport">Sport</a>
+                <a href="/vejret">Vejret</a>
+                <a href="/podcast">Podcast</a>
             </div>
             <input type="text" placeholder='Søg på news' className='bg-white text-black p-2 rounded-xl text-sm h-[70%]' />
         </nav>

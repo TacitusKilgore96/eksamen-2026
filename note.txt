@@ -10,6 +10,8 @@ skaber projekt med: Next, Tailwind, TypeScript,
 
 5. går i gang med styling af Header, Footer og frontpage
 
+6. Forsøg at Link pages i headeren✅
+
 7. Opsætning af forsiden
 
-8. Prøv at hente data ind til frontpage
+9. Prøv at hente data ind til frontpage
