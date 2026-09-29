@@ -46,7 +46,7 @@ export default function Home() {
   useEffect(() => {
     /* Henter artiklerne til forsiden, når komponenten mountes */
     makeArticleRequest<landingArticle[]>("/article/landingpage", "GET");
-  }, [makeArticleRequest]); // <-- Komma tilføjet her
+  }, [makeArticleRequest]);
 
   /* Type-casting af API-data til vores landingArticle-array */
   const mainData = articles as landingArticle[] | null; // <-- Rettet fra Article til landingArticle
@@ -86,7 +86,7 @@ export default function Home() {
             {/* højre kolonne Artikel 2 og 3 */}
             <div className="flex flex-col justify-between gap-4">
               {[art2, art3].map((art) => art && (
-                <div key={art._id} className="flex justify-between items-start gap-4">
+                <div key={art._id} className="flex justify-center gap-4">
                   <div className="flex-1">
                     <h2 className="text-lg font-bold">{art.title}</h2>
                     <p className="text-sm text-gray-600 my-1 line-clamp-2">{getArticleTeaser(art.content)}</p>

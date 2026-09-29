@@ -15,3 +15,5 @@ skaber projekt med: Next, Tailwind, TypeScript,
 7. Opsætning af forsiden
 
 9. Prøv at hente data ind til frontpage
+EDIT: data hentet 🙃 holy moly
+En data struktur som jeg ikke er vandt til, har taget lidt længere end forventet...
