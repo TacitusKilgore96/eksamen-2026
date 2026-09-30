@@ -1,19 +1,35 @@
-"use client" // Tilføj denne linje, hvis du bruger Next.js (App Router)
+"use client"
 
-import React, { useState } from 'react'
+import React from 'react'
+import { usePathname } from 'next/navigation'
 
 const Header = () => {
+  const pathname = usePathname()
+
+  const getLinkClasses = (path: string) => {
+    const isActive = pathname === path
+    
+    // bruger h-[50px] og flex items-center, så den har en fast højde og kun fylder i bunden
+    return `px-4 h-[50px] flex items-center transition-all duration-250 ease-in-out hover:bg-white hover:text-black hover:rounded-tl-2xl ${
+      isActive ? 'bg-white text-black rounded-tl-2xl' : ''
+    }`
+  }
+
   return (
     <div className='bg-black w-full h-[80px] font-bold text-white'>
-        <nav className='flex justify-between p-5 [&_a]:hover:bg-white [&_a]:hover:text-black [&_a]:p-2 [&_a]:transition-all [&_a]:duration-250 [&_a]:ease-in-out [&_a]:hover:rounded-tl-2xl'>
-            <a href="#" className='text-5xl'>...news</a>
-            <div className='flex gap-5 text-xl'>
-                <a href="/">Nyheder</a>
-                <a href="/sport">Sport</a>
-                <a href="/vejret">Vejret</a>
-                <a href="/podcast">Podcast</a>
+        {/* Ændret til items-end, så linkene presses ned mod bunden af headeren */}
+        <nav className='flex justify-between items-end h-full px-5 pb-0'>
+            <a href="/" className='text-5xl pb-2'>...news</a>
+            
+            {/* Også items-end her, så de flugter med bunden */}
+            <div className='flex h-full text-xl items-end'>
+                <a href="/nyheder" className={getLinkClasses('/nyheder')}>Nyheder</a>
+                <a href="/sport" className={getLinkClasses('/sport')}>Sport</a>
+                <a href="/vejret" className={getLinkClasses('/vejret')}>Vejret</a>
+                <a href="/podcast" className={getLinkClasses('/podcast')}>Podcast</a>
             </div>
-            <input type="text" placeholder='Søg på news' className='bg-white text-black p-2 rounded-xl text-sm h-[70%]' />
+
+            <input type="text" placeholder='Søg på news' className='bg-white text-black p-2 rounded-xl text-sm h-[60%] mb-2' />
         </nav>
     </div>
   )

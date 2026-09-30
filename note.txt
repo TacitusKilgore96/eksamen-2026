@@ -17,3 +17,10 @@ skaber projekt med: Next, Tailwind, TypeScript,
 9. Prøv at hente data ind til frontpage
 EDIT: data hentet 🙃 holy moly
 En data struktur som jeg ikke er vandt til, har taget lidt længere end forventet...
+var nød til at dele /article/landingpage op i dens 4 types; paragraph, main, image, link
+da alle 4 "type"s har data som text, title osv.
+
+10. går i gang med admin page til artiklerne 2 timer estimeret (tættere på 5)
+POST✅
+PUT✅
+DELETE✅
