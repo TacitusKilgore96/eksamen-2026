@@ -9,7 +9,7 @@ const Header = () => {
   const getLinkClasses = (path: string) => {
     const isActive = pathname === path
     
-    // bruger h-[50px] og flex items-center, så den har en fast højde og kun fylder i bunden
+    
     return `px-4 h-[50px] flex items-center transition-all duration-250 ease-in-out hover:bg-white hover:text-black hover:rounded-tl-2xl ${
       isActive ? 'bg-white text-black rounded-tl-2xl' : ''
     }`
@@ -17,11 +17,10 @@ const Header = () => {
 
   return (
     <div className='bg-black w-full h-[80px] font-bold text-white'>
-        {/* Ændret til items-end, så linkene presses ned mod bunden af headeren */}
         <nav className='flex justify-between items-end h-full px-5 pb-0'>
             <a href="/" className='text-5xl pb-2'>...news</a>
             
-            {/* Også items-end her, så de flugter med bunden */}
+            
             <div className='flex h-full text-xl items-end'>
                 <a href="/nyheder" className={getLinkClasses('/nyheder')}>Nyheder</a>
                 <a href="/sport" className={getLinkClasses('/sport')}>Sport</a>

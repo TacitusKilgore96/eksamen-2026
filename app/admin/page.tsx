@@ -463,7 +463,7 @@ const Admin = () => {
               )}
             </div>
           </form>
-        </section>
+        </section> {/* SLUT ARTIKEL FORM */}
 
         {/* ARTIKELOVERSIKT OG SØGNING */}
         <section className="grid gap-6">

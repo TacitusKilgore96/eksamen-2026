@@ -20,7 +20,17 @@ En data struktur som jeg ikke er vandt til, har taget lidt længere end forvente
 var nød til at dele /article/landingpage op i dens 4 types; paragraph, main, image, link
 da alle 4 "type"s har data som text, title osv.
 
-10. går i gang med admin page til artiklerne 2 timer estimeret (tættere på 5)
+10. går i gang med admin page til artiklerne 2 timer estimeret (tættere på 6)
 POST✅
 PUT✅
 DELETE✅
+
+11: Næste skridt. Færdiggør forsiden og gå i gang med sub pages
+
+12: landingpage podcast Færdig
+videre med Seneste ✅
+landingpage videoer
+
+13: sidste pages
+Vejr
+Podcast

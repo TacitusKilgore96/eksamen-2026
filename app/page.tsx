@@ -2,8 +2,8 @@
 
 import { useEffect } from "react";
 import useRequestData from "./hooks/useRequestData";
-import Slider from "./components/Slider";
-import Podcast from "./podcast/page";
+import Slider from "./components/Seneste";
+import Video from "./components/Video";
 
 /* 1. Typedefinitioner navngivet efter API-strukturen */
 type landingItem =
@@ -24,6 +24,16 @@ type landingArticle = {
   content: landingItem[];
 };
 
+type landingPodcast = {
+  _id: string;
+  headline: string;
+  subtitle: string;
+  thumbnail: string;
+  podcast: string;
+};
+
+const podcastId = "682242f3e96e5317c911c72e";
+
 /* 2. Hjælpefunktioner til at udtrække data fra content-arrayet */
 const getArticleImage = (content: landingItem[]): string | null => {
   const imageItem = content.find((item) => item.type === "image") as { url?: string } | undefined;
@@ -43,13 +53,22 @@ export default function Home() {
     error,
   } = useRequestData();
 
+  const {
+    makeRequest: makePodcastRequest,
+    data: podcastData,
+  } = useRequestData();
+
   useEffect(() => {
     /* Henter artiklerne til forsiden, når komponenten mountes */
     makeArticleRequest<landingArticle[]>("/article/landingpage", "GET");
-  }, [makeArticleRequest]);
+    /* Henter den specifikke podcast via _id */
+    makePodcastRequest<landingPodcast>(`/podcast/${podcastId}`, "GET")
+  }, [makeArticleRequest, makePodcastRequest]);
 
   /* Type-casting af API-data til vores landingArticle-array */
   const mainData = articles as landingArticle[] | null; // <-- Rettet fra Article til landingArticle
+  /* til vores landingPodcast-array */
+  const podcast = podcastData as landingPodcast | null;
 
   /* Håndtering af loading, fejl og manglende data */
   if (isLoading) return <p className="p-4">Henter artikler...</p>;
@@ -127,8 +146,28 @@ export default function Home() {
           {/* Seneste */}
           <Slider />
 
+          {/* Videoer */}
+          <Video />
+
+
           {/* Podcast */}
-          <Podcast />
+          {podcast && (
+          <div>
+            <h1 className="text-2xl font-bold">Podcast</h1>
+            <div className="flex border p-2">
+              <img 
+              src={`http://localhost:3001/assets/podcast/${podcast.thumbnail}`}
+              alt={podcast.headline} />
+              <div>
+                <h2>{podcast.headline}</h2>
+
+                <p>{podcast.subtitle}</p>
+                <audio controls src={`http://localhost:3001/assets/podcast/${podcast.podcast}`}></audio>
+              </div>
+            </div>
+          </div>
+
+        )}
 
         </main>
       </div>
