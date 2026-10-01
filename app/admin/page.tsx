@@ -2,585 +2,308 @@
 
 import { useEffect, useState } from "react"
 import useRequestData from "../hooks/useRequestData"
+import ArticleAdmin, { type Article, type ArticleForm, type ContentBlock } from "./components/ArticleAdmin"
+import PodcastAdmin, { type Podcast, type PodcastForm } from "./components/PodcastAdmin"
 
-/* Beskriver en enkel blok i content-arrayet fra API'et */
-type ContentBlock = {
-  type: "paragraph" | "main" | "image" | "link" | string
-  text?: string
-  headline?: string
-  url?: string
-  altText?: string
-  caption?: string
-  thumbnail?: string
-  contentbody?: ContentBlock[]
-}
-
-/* Beskriver den fulde datastruktur på en artikel */
-type Article = {
-  _id: string
-  title: string
-  slug?: string
-  author?: string
-  articleCategory?: string
-  section?: string
-  tags?: string[]
-  publishedAt?: string
-  content?: ContentBlock[]
-}
-
-/* De tre faste kategorier (valgfrie) */
-const ALLOWED_CATEGORIES = [
-  { label: "Vælg kategori (valgfri)...", value: "" },
-  { label: "Sport", value: "sport" },
-  { label: "Vejr", value: "vejr" },
-  { label: "Nyheder", value: "nyheder" },
-]
-
-/* 
-  KORTLÆGNING AF KATEGORI TIL SECTION ID
-  Erstat disse 3 ID'er med de faktiske Section ID'er fra min database!
-*/
+/* Knytter artikelkategorier til de section-id'er, som API'et forventer. */
 const CATEGORY_SECTION_MAP: Record<string, string> = {
-  sport: "673492b05f363e78e15ed1b8", // Indsæt rigtigt Sport Section ID
-  vejr: "507f1f77bcf86cd799439011",  // Indsæt rigtigt Vejr Section ID
-  nyheder: "60d5ecb8b5c9c22d4c8b4567", // Indsæt rigtigt Nyheder Section ID
+  sport: "673492b05f363e78e15ed1b8",
+  vejr: "507f1f77bcf86cd799439011",
+  nyheder: "60d5ecb8b5c9c22d4c8b4567",
 }
 
-/* Standard/fallback Section ID, hvis ingen kategori vælges */
 const DEFAULT_SECTION_ID = "000000000000000000000000"
+const LISTENED_PODCASTS_STORAGE_KEY = "newsapp-listened-podcasts"
+
+const EMPTY_ARTICLE_FORM: ArticleForm = {
+  title: "",
+  slug: "",
+  author: "",
+  articleCategory: "",
+  tags: "",
+  leadText: "",
+  mainText: "",
+  imageUrl: "",
+}
+
+const EMPTY_PODCAST_FORM: PodcastForm = {
+  headline: "",
+  length: "",
+  file: "",
+  fileUpload: null,
+  thumbnail: "",
+  thumbnailUpload: null,
+  subtitle: "",
+  contentText: "",
+}
+
+/* Laver formularens tekstfelter om til de contentblokke, API'et bruger. */
+const createArticleContent = (form: ArticleForm): ContentBlock[] => {
+  const content: ContentBlock[] = []
+
+  if (form.leadText.trim()) {
+    content.push({ type: "paragraph", text: form.leadText, contentbody: [] })
+  }
+
+  if (form.mainText.trim()) {
+    const paragraphs = form.mainText
+      .split("\n")
+      .filter((paragraph) => paragraph.trim())
+      .map((text) => ({ type: "paragraph" as const, text }))
+
+    content.push({ type: "main", contentbody: paragraphs })
+  }
+
+  if (form.imageUrl.trim()) {
+    content.push({
+      type: "image",
+      url: form.imageUrl,
+      altText: form.title,
+      caption: "",
+      thumbnail: "",
+      contentbody: [],
+    })
+  }
+
+  return content
+}
+
+/* Samler de felter, der skal sendes, og udelader tomme valgfrie felter. */
+const createArticlePayload = (form: ArticleForm, article?: Article | null) => {
+  const tags = form.tags.split(",").map((tag) => tag.trim()).filter(Boolean)
+  const payload: Record<string, unknown> = {
+    title: form.title,
+    section: CATEGORY_SECTION_MAP[form.articleCategory] || DEFAULT_SECTION_ID,
+    publishedAt: article?.publishedAt || new Date().toISOString(),
+    content: createArticleContent(form),
+  }
+
+  if (form.articleCategory.trim()) payload.articleCategory = form.articleCategory.trim()
+  if (form.slug.trim()) payload.slug = form.slug.trim()
+  if (form.author.trim()) payload.author = form.author.trim()
+  if (tags.length) payload.tags = tags
+
+  return payload
+}
+
+const parsePodcastLength = (length: string) => {
+  if (!length.includes(":")) {
+    const seconds = Number(length)
+    return Number.isFinite(seconds) ? seconds : 0
+  }
+
+  const [minutes, seconds] = length.split(":").map(Number)
+  return Number.isFinite(minutes) && Number.isFinite(seconds) ? minutes * 60 + seconds : 0
+}
+
+/* Laver podcastformularen om til multipart-data, som også kan indeholde filer. */
+const createPodcastFormData = (form: PodcastForm, releaseDate = new Date().toISOString()) => {
+  const formData = new FormData()
+  formData.append("headline", form.headline)
+  formData.append("length", String(parsePodcastLength(form.length)))
+  formData.append("releaseDate", releaseDate)
+  formData.append("subtitle", form.subtitle)
+  formData.append("info", form.subtitle || form.contentText)
+
+  if (form.fileUpload) formData.append("podcast", form.fileUpload)
+  else if (form.file) formData.append("podcast", form.file)
+
+  if (form.thumbnailUpload) formData.append("thumbnail", form.thumbnailUpload)
+  else if (form.thumbnail) formData.append("thumbnail", form.thumbnail)
+
+  return formData
+}
 
 const Admin = () => {
+  /* Hvert hook har sin egen data-state, så artikel- og podcastlister ikke overskriver hinanden. */
   const { makeRequest, data, isLoading, error } = useRequestData()
+  const {
+    makeRequest: makePodcastRequest,
+    data: podcastData,
+    isLoading: podcastIsLoading,
+    error: podcastError,
+  } = useRequestData()
 
-  /* Søge-state til artikel ID */
+  /* Søgefeltet bruges til at filtrere artikler på deres ID. */
   const [searchId, setSearchId] = useState("")
-
-  /* Redigeringstilstand */
+  /* Holder styr på den artikel, som brugeren redigerer. */
   const [editingArticle, setEditingArticle] = useState<Article | null>(null)
+  /* Samler alle artikel-felter i én state i stedet for én state pr. input. */
+  const [articleForm, setArticleForm] = useState<ArticleForm>(EMPTY_ARTICLE_FORM)
 
-  /* Formular-states */
-  const [title, setTitle] = useState("")
-  const [slug, setSlug] = useState("")
-  const [author, setAuthor] = useState("")
-  const [articleCategory, setArticleCategory] = useState("")
-  const [tags, setTags] = useState("")
-  const [leadText, setLeadText] = useState("")
-  const [mainText, setMainText] = useState("")
-  const [imageUrl, setImageUrl] = useState("")
-
-  /* Hjælpefunktion til at læse, nedskalere og komprimere fil til Base64 */
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    const reader = new FileReader()
-    reader.readAsDataURL(file)
-    reader.onload = (event) => {
-      const img = new Image()
-      img.src = event.target?.result as string
-
-      img.onload = () => {
-        const canvas = document.createElement("canvas")
-        const MAX_WIDTH = 800
-        const MAX_HEIGHT = 800
-
-        let width = img.width
-        let height = img.height
-
-        if (width > height) {
-          if (width > MAX_WIDTH) {
-            height *= MAX_WIDTH / width
-            width = MAX_WIDTH
-          }
-        } else {
-          if (height > MAX_HEIGHT) {
-            width *= MAX_HEIGHT / height
-            height = MAX_HEIGHT
-          }
-        }
-
-        canvas.width = width
-        canvas.height = height
-
-        const ctx = canvas.getContext("2d")
-        ctx?.drawImage(img, 0, 0, width, height)
-
-        const compressedBase64 = canvas.toDataURL("image/jpeg", 0.6)
-        setImageUrl(compressedBase64)
-      }
+  /* Holder styr på den podcast, som brugeren redigerer. */
+  const [editingPodcast, setEditingPodcast] = useState<Podcast | null>(null)
+  /* Samler alle podcast-felter i én state, som sendes samlet til komponenten. */
+  const [podcastForm, setPodcastForm] = useState<PodcastForm>(EMPTY_PODCAST_FORM)
+  const [listenedPodcastIds, setListenedPodcastIds] = useState<string[]>(() => {
+    if (typeof window === "undefined") return []
+    const storedPodcastIds = window.localStorage.getItem(LISTENED_PODCASTS_STORAGE_KEY)
+    if (!storedPodcastIds) return []
+    try {
+      return JSON.parse(storedPodcastIds) as string[]
+    } catch {
+      return []
     }
-  }
+  })
 
-  /* Hjælpefunktion til rekursivt at udtrække al brødtekst til visning i listen */
-  const extractAllText = (blocks?: ContentBlock[]): string => {
-    if (!blocks || !Array.isArray(blocks)) return ""
-
-    let texts: string[] = []
-
-    blocks.forEach((block) => {
-      if (block.text) texts.push(block.text)
-      if (block.headline) texts.push(`[${block.headline}]`)
-      if (block.contentbody && Array.isArray(block.contentbody)) {
-        texts.push(extractAllText(block.contentbody))
-      }
-    })
-
-    return texts.filter(Boolean).join(" ")
-  }
-
-  /* Henter alle artikler fra API'et */
+  /* Henter de to datatyper fra hver deres API-endpoint. */
   const loadArticles = () => makeRequest("/article", "GET")
+  const loadPodcasts = () => makePodcastRequest("/podcast", "GET")
 
+  /* Hent artikler og podcasts, når admin-siden åbnes. */
   useEffect(() => {
     loadArticles()
+    loadPodcasts()
   }, [])
 
-  /* Nulstiller formularen */
+  const togglePodcastListened = (podcastId: string) => {
+    setListenedPodcastIds((currentIds) => {
+      const nextIds = currentIds.includes(podcastId)
+        ? currentIds.filter((id) => id !== podcastId)
+        : [...currentIds, podcastId]
+      window.localStorage.setItem(LISTENED_PODCASTS_STORAGE_KEY, JSON.stringify(nextIds))
+      return nextIds
+    })
+  }
+
+  /* Nulstiller artikel-formularen efter gem eller annullering. */
   const resetForm = () => {
     setEditingArticle(null)
-    setTitle("")
-    setSlug("")
-    setAuthor("")
-    setArticleCategory("")
-    setTags("")
-    setLeadText("")
-    setMainText("")
-    setImageUrl("")
+    setArticleForm(EMPTY_ARTICLE_FORM)
   }
 
-  /* Klargør formularen med data fra den valgte artikel */
+  /* Nulstiller podcast-formularen efter gem eller annullering. */
+  const resetPodcastForm = () => {
+    setEditingPodcast(null)
+    setPodcastForm(EMPTY_PODCAST_FORM)
+  }
+
+  /* Kopierer en artikels data ind i formularen til redigering. */
   const handleEditClick = (article: Article) => {
     setEditingArticle(article)
-    setTitle(article.title || "")
-    setSlug(article.slug || "")
-    setAuthor(article.author || "")
-    setArticleCategory(article.articleCategory || "")
-    setTags(Array.isArray(article.tags) ? article.tags.join(", ") : "")
-
-    if (Array.isArray(article.content)) {
-      const paraBlock = article.content.find((b) => b.type === "paragraph")
-      const mainBlock = article.content.find((b) => b.type === "main")
-      const imgBlock = article.content.find((b) => b.type === "image")
-
-      setLeadText(paraBlock?.text || "")
-      setImageUrl(imgBlock?.url || "")
-
-      if (mainBlock && Array.isArray(mainBlock.contentbody)) {
-        const bodyTexts = mainBlock.contentbody.map((b) => b.text || "").filter(Boolean)
-        setMainText(bodyTexts.join("\n\n"))
-      } else {
-        setMainText("")
-      }
-    }
+    const content = Array.isArray(article.content) ? article.content : []
+    const paragraph = content.find((block) => block.type === "paragraph")
+    const main = content.find((block) => block.type === "main")
+    const image = content.find((block) => block.type === "image")
+    setArticleForm({
+      title: article.title || "",
+      slug: article.slug || "",
+      author: article.author || "",
+      articleCategory: article.articleCategory || "",
+      tags: Array.isArray(article.tags) ? article.tags.join(", ") : "",
+      leadText: paragraph?.text || "",
+      imageUrl: image?.url || "",
+      mainText: main?.contentbody?.map((block) => block.text || "").filter(Boolean).join("\n\n") || "",
+    })
   }
 
-  /* Håndterer indsendelse (POST / PUT) */
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-
-    const parsedTags = tags
-      .split(",")
-      .map((t) => t.trim())
-      .filter((t) => t.length > 0)
-
-    const constructedContent: ContentBlock[] = []
-
-    if (leadText.trim()) {
-      constructedContent.push({
-        type: "paragraph",
-        text: leadText,
-        contentbody: [],
-      })
-    }
-
-    if (mainText.trim()) {
-      const mainParagraphs = mainText
-        .split("\n")
-        .filter((p) => p.trim().length > 0)
-        .map((p) => ({
-          type: "paragraph",
-          text: p,
-        }))
-
-      constructedContent.push({
-        type: "main",
-        contentbody: mainParagraphs,
-      })
-    }
-
-    if (imageUrl.trim()) {
-      constructedContent.push({
-        type: "image",
-        url: imageUrl,
-        altText: title,
-        caption: "",
-        thumbnail: "",
-        contentbody: [],
-      })
-    }
-
-    /* AUTOMATISK SECTION-TILDELING UD FRA KATEGORI */
-    const assignedSection =
-      (articleCategory ? CATEGORY_SECTION_MAP[articleCategory] : null) ||
-      DEFAULT_SECTION_ID
-
-    const payload: Record<string, any> = {
-      title,
-      section: assignedSection,
-      publishedAt: editingArticle?.publishedAt || new Date().toISOString(),
-      content: constructedContent,
-    }
-
-    if (articleCategory.trim()) payload.articleCategory = articleCategory.trim()
-    if (slug.trim()) payload.slug = slug.trim()
-    if (author.trim()) payload.author = author.trim()
-    if (parsedTags.length > 0) payload.tags = parsedTags
+  /* Opretter eller opdaterer en artikel via API'et. */
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault()
+    const payload = createArticlePayload(articleForm, editingArticle)
 
     if (editingArticle) {
-      const { _id } = editingArticle;
-      
-      await makeRequest(`/article/update/${_id}`, "PUT", {
-        body: {
-          _id: editingArticle._id,
-          ...payload,
-        }
-      })
+      await makeRequest(`/article/update/${editingArticle._id}`, "PUT", { body: { _id: editingArticle._id, ...payload } })
     } else {
-      await makeRequest("/article/add", "POST", {
-        body: payload,
-      })
+      await makeRequest("/article/add", "POST", { body: payload })
     }
 
     resetForm()
     await loadArticles()
   }
 
-  /* Slet artikel */
+  /* Sletter en artikel efter brugerens bekræftelse. */
   const handleDelete = async (articleId: string) => {
     if (!window.confirm("Er du sikker på, at artiklen skal slettes?")) return
-
-    /* Kalder /article/_id med DELETE metoden */
     await makeRequest(`/article/delete/${articleId}`, "DELETE")
-
     await loadArticles()
   }
 
-  /* CRASH PROTECTION, SØGE-FILTRERING OG SORTERING EFTER DATO (NYESTE FØRST) */
-  /* const rawArticles = (data ?? []) as Article[] */ 
-  /* POST Error. Skal kun behandle data som et array, hvis det faktisk er et array. */
-  /* Hvis det er et objekt (eller null), skal den falde tilbage på et tomt array[] indtil loadArticles() henter hele listen igen. */
-  const rawArticles = Array.isArray(data) ? (data as Article[]) : []
+  /* Kopierer en podcasts data ind i formularen til redigering. */
+  const handlePodcastEdit = (podcast: Podcast) => {
+    setEditingPodcast(podcast)
+    setPodcastForm({
+      headline: podcast.headline || "",
+      length: podcast.length ? String(podcast.length) : "",
+      file: podcast.podcast || "",
+      fileUpload: null,
+      thumbnail: podcast.thumbnail || "",
+      thumbnailUpload: null,
+      subtitle: podcast.subtitle || "",
+      contentText: podcast.contentText || podcast.info || "", /* gør så subtitle dukker op i projektet */
+    })
+  }
 
-  const filteredArticles = searchId.trim()
-    ? rawArticles.filter((art) => art._id?.toLowerCase().includes(searchId.trim().toLowerCase()))
-    : rawArticles
+  /* Opretter eller opdaterer en podcast via API'et. */
+  const handlePodcastSubmit = async (event: React.FormEvent) => {
+    event.preventDefault()
+    const body = createPodcastFormData(podcastForm, editingPodcast?.releaseDate)
+    let response: unknown = null
 
-  // Sorterer artiklerne, så den nyeste 'publishedAt' dato altid ligger øverst
-  const articles = [...filteredArticles].sort((a, b) => {
-    const dateA = a.publishedAt ? new Date(a.publishedAt).getTime() : 0
-    const dateB = b.publishedAt ? new Date(b.publishedAt).getTime() : 0
-    return dateB - dateA
-  })
+    if (editingPodcast) {
+      body.append("_id", editingPodcast._id)
+      response = await makePodcastRequest(`/podcast/update/${editingPodcast._id}`, "PUT", { body })
+    } else {
+      response = await makePodcastRequest("/podcast/add", "POST", { body })
+    }
+
+    if (response === null) return
+
+    resetPodcastForm()
+    await loadPodcasts()
+  }
+
+  /* Sletter en podcast efter brugerens bekræftelse. */
+  const handlePodcastDelete = async (podcastId: string) => {
+    if (!window.confirm("Er du sikker på, at podcasten skal slettes?")) return
+    await makePodcastRequest(`/podcast/delete/${podcastId}`, "DELETE")
+    await loadPodcasts()
+  }
+
+  /* Sikrer at komponenterne altid modtager arrays. */
+  const articles = (Array.isArray(data) ? data : []) as Article[]
+  const podcasts = (Array.isArray(podcastData) ? podcastData : podcastData ? [podcastData] : []) as Podcast[]
 
   return (
     <div className="min-h-screen bg-black px-4 py-12 text-white sm:px-8 lg:px-12">
       <div className="mx-auto max-w-6xl">
         <header className="mb-10 border-b-4 border-white pb-6">
-          <p className="mb-3 text-sm font-bold uppercase tracking-[0.25em] text-gray-400">
-            Administration
-          </p>
-          <h1 className="text-4xl font-extrabold uppercase tracking-tight sm:text-6xl">
-            Artikelstyring
-          </h1>
-          <p className="mt-3 max-w-2xl text-base text-gray-300 sm:text-lg">
-            Opret, redigér, søg og slet artikler.
-          </p>
+          <p className="mb-3 text-sm font-bold uppercase tracking-[0.25em] text-gray-400">Administration</p>
+          <h1 className="text-4xl font-extrabold uppercase tracking-tight sm:text-6xl">Artikelstyring</h1>
+          <p className="mt-3 max-w-2xl text-base text-gray-300 sm:text-lg">Opret, redigér, søg og slet artikler og podcasts.</p>
         </header>
 
-        {/* FORMULAR: OPRET / REDIGER */}
-        <section className="mb-12 border border-gray-600 bg-gray-900 p-6 sm:p-8">
-          <h2 className="mb-6 text-2xl font-extrabold uppercase">
-            {editingArticle ? "Redigér artikel" : "Opret ny artikel"}
-          </h2>
+        {/* Artikeladministrationen håndteres af sin egen komponent */}
+        <ArticleAdmin
+          articles={articles}
+          isLoading={isLoading}
+          error={error}
+          editingArticle={editingArticle}
+          form={articleForm}
+          searchId={searchId}
+          setForm={setArticleForm}
+          setSearchId={setSearchId}
+          resetForm={resetForm}
+          handleSubmit={handleSubmit}
+          handleEditClick={handleEditClick}
+          handleDelete={handleDelete}
+        />
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-            <div className="grid gap-5 sm:grid-cols-3">
-              <div>
-                <label htmlFor="title" className="mb-2 block text-sm font-bold uppercase text-gray-300">
-                  Titel *
-                </label>
-                <input
-                  id="title"
-                  type="text"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  required
-                  className="w-full border border-gray-600 bg-gray-800 p-3 text-white focus:border-white focus:outline-none"
-                  placeholder="f.eks. Lorem Ipsum Article 14"
-                />
-              </div>
-
-              {/* KATEGORI - Tildeler automatisk section ID i baggrunden */}
-              <div>
-                <label htmlFor="articleCategory" className="mb-2 block text-sm font-bold uppercase text-gray-300">
-                  Kategori (Valgfri)
-                </label>
-                <select
-                  id="articleCategory"
-                  value={articleCategory}
-                  onChange={(e) => setArticleCategory(e.target.value)}
-                  className="w-full border border-gray-600 bg-gray-800 p-3 text-white focus:border-white focus:outline-none"
-                >
-                  {ALLOWED_CATEGORIES.map((cat) => (
-                    <option key={cat.value} value={cat.value}>
-                      {cat.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* SLUG - VALGFRI */}
-              <div>
-                <label htmlFor="slug" className="mb-2 block text-sm font-bold uppercase text-gray-300">
-                  Slug (Valgfri)
-                </label>
-                <input
-                  id="slug"
-                  type="text"
-                  value={slug}
-                  onChange={(e) => setSlug(e.target.value)}
-                  className="w-full border border-gray-600 bg-gray-800 p-3 text-white focus:border-white focus:outline-none"
-                  placeholder="f.eks. sport-artikel-14"
-                />
-              </div>
-            </div>
-
-            <div className="grid gap-5 sm:grid-cols-2">
-              <div>
-                <label htmlFor="author" className="mb-2 block text-sm font-bold uppercase text-gray-300">
-                  Forfatter
-                </label>
-                <input
-                  id="author"
-                  type="text"
-                  value={author}
-                  onChange={(e) => setAuthor(e.target.value)}
-                  className="w-full border border-gray-600 bg-gray-800 p-3 text-white focus:border-white focus:outline-none"
-                  placeholder="Journalist 14"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="tags" className="mb-2 block text-sm font-bold uppercase text-gray-300">
-                  Tags (adskilt af komma)
-                </label>
-                <input
-                  id="tags"
-                  type="text"
-                  value={tags}
-                  onChange={(e) => setTags(e.target.value)}
-                  className="w-full border border-gray-600 bg-gray-800 p-3 text-white focus:border-white focus:outline-none"
-                  placeholder="sport, lorem, ipsum"
-                />
-              </div>
-            </div>
-
-            {/* BILLEDUPLOAD MED PREVIEW */}
-            <div>
-              <label htmlFor="imageFile" className="mb-2 block text-sm font-bold uppercase text-gray-300">
-                Upload Billede
-              </label>
-              <input
-                id="imageFile"
-                type="file"
-                accept="image/*"
-                onChange={handleImageUpload}
-                className="w-full border border-gray-600 bg-gray-800 p-2.5 text-sm text-gray-300 file:mr-4 file:border-0 file:bg-white file:px-4 file:py-1.5 file:text-xs file:font-bold file:uppercase file:text-black hover:file:bg-gray-300"
-              />
-
-              {imageUrl && (
-                <div className="mt-3 flex items-center gap-3">
-                  <img
-                    src={imageUrl}
-                    alt="Billede preview"
-                    className="h-16 w-16 border border-gray-600 object-cover"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setImageUrl("")}
-                    className="text-xs font-bold uppercase text-red-400 hover:underline"
-                  >
-                    Fjern billede
-                  </button>
-                </div>
-              )}
-            </div>
-
-            <div>
-              <label htmlFor="leadText" className="mb-2 block text-sm font-bold uppercase text-gray-300">
-                Manchet / Intro (Paragraph)
-              </label>
-              <textarea
-                id="leadText"
-                rows={2}
-                value={leadText}
-                onChange={(e) => setLeadText(e.target.value)}
-                className="w-full border border-gray-600 bg-gray-800 p-3 text-white focus:border-white focus:outline-none"
-                placeholder="Indledende resume af artiklen..."
-              />
-            </div>
-
-            <div>
-              <label htmlFor="mainText" className="mb-2 block text-sm font-bold uppercase text-gray-300">
-                Brødtekst (Main content body)
-              </label>
-              <textarea
-                id="mainText"
-                rows={6}
-                value={mainText}
-                onChange={(e) => setMainText(e.target.value)}
-                className="w-full border border-gray-600 bg-gray-800 p-3 text-white focus:border-white focus:outline-none"
-                placeholder="Skriv artiklens hovedindhold her..."
-              />
-            </div>
-
-            <div className="flex flex-wrap gap-3 pt-2">
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="bg-white px-6 py-3 text-sm font-bold uppercase text-black transition-colors hover:bg-gray-300 disabled:opacity-50"
-              >
-                {editingArticle ? "Gem ændringer" : "Gem artikel"}
-              </button>
-              {editingArticle && (
-                <button
-                  type="button"
-                  onClick={resetForm}
-                  className="border border-gray-500 px-6 py-3 text-sm font-bold uppercase text-white transition-colors hover:bg-gray-800"
-                >
-                  Annullér
-                </button>
-              )}
-            </div>
-          </form>
-        </section> {/* SLUT ARTIKEL FORM */}
-
-        {/* ARTIKELOVERSIKT OG SØGNING */}
-        <section className="grid gap-6">
-          <div className="flex flex-col gap-4 border-b border-gray-600 pb-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-3">
-              <h2 className="text-2xl font-extrabold uppercase">Artikler</h2>
-              <span className="bg-gray-700 px-3 py-1 text-sm font-bold text-white">
-                {articles.length} {articles.length === 1 ? "artikel" : "artikler"}
-              </span>
-            </div>
-
-            <div className="w-full sm:w-80">
-              <input
-                type="text"
-                placeholder="Søg på artikel ID..."
-                value={searchId}
-                onChange={(e) => setSearchId(e.target.value)}
-                className="w-full border border-gray-600 bg-gray-800 px-3 py-2 text-sm text-white placeholder-gray-400 focus:border-white focus:outline-none"
-              />
-            </div>
-          </div>
-
-          {isLoading && (
-            <p className="border border-gray-600 bg-gray-800 p-6 font-bold text-white">
-              Henter artikler...
-            </p>
-          )}
-
-          {error && (
-            <p className="border-l-4 border-white bg-gray-800 p-6 font-bold text-white">
-              Artiklerne kunne ikke hentes.
-            </p>
-          )}
-
-          {!isLoading && !error && articles.length === 0 && (
-            <p className="border border-gray-600 bg-gray-800 p-6 text-gray-300">
-              {searchId ? `Ingen artikel fundet med ID "${searchId}"` : "Der er endnu ikke oprettet nogen artikler."}
-            </p>
-          )}
-
-          {/* SCROLL CONTAINER TIL ARTIKLERNE */}
-          {!isLoading && !error && articles.length > 0 && (
-            <div className="flex max-h-[650px] flex-col gap-4 overflow-y-auto pr-2">
-              {articles.map((article) => (
-                <article key={article._id} className="border border-gray-600 bg-gray-800 p-5 shadow-sm sm:p-7">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                      <div className="mb-2 flex flex-wrap items-center gap-2">
-                        <h3 className="text-2xl font-extrabold">{article.title}</h3>
-                        {article.articleCategory && (
-                          <span className="bg-gray-700 px-2 py-0.5 text-xs font-bold uppercase text-gray-300">
-                            {article.articleCategory}
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-xs text-gray-400">
-                        <span className="font-bold text-gray-300">ID:</span> {article._id}
-                      </p>
-                      {article.slug && (
-                        <p className="text-xs text-gray-400">
-                          <span className="font-bold text-gray-300">Slug:</span> /{article.slug}
-                        </p>
-                      )}
-                      {article.section && (
-                        <p className="text-xs text-gray-400">
-                          <span className="font-bold text-gray-300">Sektion ID:</span> {article.section}
-                        </p>
-                      )}
-                      {article.author && (
-                        <p className="text-xs text-gray-400">
-                          <span className="font-bold text-gray-300">Forfatter:</span> {article.author}
-                        </p>
-                      )}
-                    </div>
-
-                    {article.publishedAt && (
-                      <p className="text-sm text-gray-400">
-                        {new Date(article.publishedAt).toLocaleString("da-DK")}
-                      </p>
-                    )}
-                  </div>
-
-                  <p className="mt-4 border-t border-gray-600 pt-4 text-gray-200 line-clamp-3">
-                    {extractAllText(article.content)}
-                  </p>
-
-                  {Array.isArray(article.tags) && article.tags.length > 0 && (
-                    <div className="mt-3 flex flex-wrap gap-1">
-                      {article.tags.map((tag, idx) => (
-                        <span key={idx} className="border border-gray-600 px-2 py-0.5 text-xs text-gray-400">
-                          #{tag}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-
-                  <div className="mt-6 flex flex-wrap gap-3">
-                    <button
-                      type="button"
-                      onClick={() => handleEditClick(article)}
-                      className="bg-white px-4 py-2 text-sm font-bold uppercase text-black transition-colors hover:bg-gray-300"
-                    >
-                      Redigér
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(article._id)}
-                      className="border border-gray-300 px-4 py-2 text-sm font-bold uppercase text-white transition-colors hover:bg-white hover:text-black"
-                    >
-                      Slet artikel
-                    </button>
-                  </div>
-                </article>
-              ))}
-            </div>
-          )}
-        </section>
+        {/* Podcastadministrationen håndteres af sin egen komponent */}
+        <PodcastAdmin
+          podcasts={podcasts}
+          isLoading={podcastIsLoading}
+          error={podcastError}
+          editingPodcast={editingPodcast}
+          form={podcastForm}
+          setForm={setPodcastForm}
+          resetPodcastForm={resetPodcastForm}
+          handlePodcastSubmit={handlePodcastSubmit}
+          handlePodcastEdit={handlePodcastEdit}
+          handlePodcastDelete={handlePodcastDelete}
+          listenedPodcastIds={listenedPodcastIds}
+          togglePodcastListened={togglePodcastListened}
+        />
       </div>
     </div>
   )

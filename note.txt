@@ -36,6 +36,8 @@ landingpage videoer
 Vejr
 Podcast
 Kontakt modul
+-POST & PATCH contact prioritet
+-DELETE contact sidste prioritet
 Responsitivitet
 
 Når det er færdigt, er det i gang med dokumentation
