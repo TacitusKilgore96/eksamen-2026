@@ -24,6 +24,7 @@ da alle 4 "type"s har data som text, title osv.
 POST✅
 PUT✅
 DELETE✅
+PATCH
 
 11: Næste skridt. Færdiggør forsiden og gå i gang med sub pages
 
@@ -31,6 +32,10 @@ DELETE✅
 videre med Seneste ✅
 landingpage videoer
 
-13: sidste pages
+13: sidste ting
 Vejr
 Podcast
+Kontakt modul
+Responsitivitet
+
+Når det er færdigt, er det i gang med dokumentation

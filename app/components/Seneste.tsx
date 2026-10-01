@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect } from "react";
+import Link from "next/link";
 import useRequestData from "../hooks/useRequestData";
 
 /* 1. Typedefinitioner til elementer i artiklens indhold (tekst og billeder) */
@@ -81,7 +82,7 @@ const Seneste = () => {
           const title = article.title || article.headline || "";
 
           return (
-            <article key={article._id} className="min-w-0">
+            <Link href={`/subarticle/${article._id}`} key={article._id} className="block min-w-0">
               {/* Billedvisning (renderes kun hvis et billede er til stede) */}
               {image && (
                 <img
@@ -102,7 +103,7 @@ const Seneste = () => {
               <p className="mt-2 text-xs text-gray-500">
                 <span className="text-amber-600 capitalize">{article.articleCategory}</span>
               </p>
-            </article>
+            </Link>
           );
         })}
       </div>

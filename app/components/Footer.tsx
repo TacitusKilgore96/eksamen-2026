@@ -1,5 +1,8 @@
 "use client"
 
+import useRequestData from "../hooks/useRequestData"
+import Contact from "./Contact"
+
 const Footer = () => {
   return (
     <div className="[&_p]:text-lg [&_h1]:text-2xl [&_h1]:font-extrabold bg-black text-white">

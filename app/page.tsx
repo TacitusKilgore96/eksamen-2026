@@ -1,9 +1,11 @@
 'use client'
 
 import { useEffect } from "react";
+import Link from "next/link";
 import useRequestData from "./hooks/useRequestData";
 import Slider from "./components/Seneste";
 import Video from "./components/Video";
+import LandingPagePodcast from "./components/LandingPagePodcast";
 
 /* 1. Typedefinitioner navngivet efter API-strukturen */
 type landingItem =
@@ -24,16 +26,6 @@ type landingArticle = {
   content: landingItem[];
 };
 
-type landingPodcast = {
-  _id: string;
-  headline: string;
-  subtitle: string;
-  thumbnail: string;
-  podcast: string;
-};
-
-const podcastId = "682242f3e96e5317c911c72e";
-
 /* 2. Hjælpefunktioner til at udtrække data fra content-arrayet */
 const getArticleImage = (content: landingItem[]): string | null => {
   const imageItem = content.find((item) => item.type === "image") as { url?: string } | undefined;
@@ -53,23 +45,13 @@ export default function Home() {
     error,
   } = useRequestData();
 
-  const {
-    makeRequest: makePodcastRequest,
-    data: podcastData,
-  } = useRequestData();
-
   useEffect(() => {
     /* Henter artiklerne til forsiden, når komponenten mountes */
     makeArticleRequest<landingArticle[]>("/article/landingpage", "GET");
-    /* Henter den specifikke podcast via _id */
-    makePodcastRequest<landingPodcast>(`/podcast/${podcastId}`, "GET")
-  }, [makeArticleRequest, makePodcastRequest]);
+  }, [makeArticleRequest]);
 
   /* Type-casting af API-data til vores landingArticle-array */
   const mainData = articles as landingArticle[] | null; // <-- Rettet fra Article til landingArticle
-  /* til vores landingPodcast-array */
-  const podcast = podcastData as landingPodcast | null;
-
   /* Håndtering af loading, fejl og manglende data */
   if (isLoading) return <p className="p-4">Henter artikler...</p>;
   if (error) return <p className="p-4 text-red-600">Der opstod en fejl ved hentning af artikler.</p>;
@@ -87,7 +69,7 @@ export default function Home() {
             
             {/* venstre kolonne Artikel 1 */}
             {art1 && (
-              <div className="flex flex-col">
+              <Link href={`/subarticle/${art1._id}`} className="flex flex-col">
                 <h1 className="text-2xl font-bold">{art1.title}</h1>
                 <p className="text-sm mb-2">
                   <span className="text-amber-600 capitalize">{art1.articleCategory}</span> | 29 dage siden
@@ -99,13 +81,13 @@ export default function Home() {
                     className="w-full h-[280px] object-cover rounded" 
                   />
                 )}
-              </div>
+              </Link>
             )}
 
             {/* højre kolonne Artikel 2 og 3 */}
             <div className="flex flex-col justify-between gap-4">
               {[art2, art3].map((art) => art && (
-                <div key={art._id} className="flex justify-center gap-4">
+                <Link href={`/subarticle/${art._id}`} key={art._id} className="flex justify-center gap-4">
                   <div className="flex-1">
                     <h2 className="text-lg font-bold">{art.title}</h2>
                     <p className="text-sm text-gray-600 my-1 line-clamp-2">{getArticleTeaser(art.content)}</p>
@@ -120,13 +102,13 @@ export default function Home() {
                       className="w-36 h-24 object-cover rounded flex-shrink-0"
                     />
                   )}
-                </div>
+                </Link>
               ))}
             </div>
 
             {/* Nederste række i grid'et */}
             {[art4, art5].map((art) => art && (
-              <div key={art._id} className="relative rounded overflow-hidden group h-64">
+              <Link href={`/subarticle/${art._id}`} key={art._id} className="relative rounded overflow-hidden group h-64">
                 {getArticleImage(art.content) && (
                   <img 
                     src={`http://localhost:3001/assets/images/${getArticleImage(art.content)}`} 
@@ -138,7 +120,7 @@ export default function Home() {
                 <div className="absolute bottom-0 inset-x-0 bg-black/80 text-white p-3">
                   <p className="text-sm line-clamp-2">{getArticleTeaser(art.content) || art.title}</p>
                 </div>
-              </div>
+              </Link>
             ))}
 
           </section>
@@ -149,25 +131,8 @@ export default function Home() {
           {/* Videoer */}
           <Video />
 
-
           {/* Podcast */}
-          {podcast && (
-          <div>
-            <h1 className="text-2xl font-bold">Podcast</h1>
-            <div className="flex border p-2">
-              <img 
-              src={`http://localhost:3001/assets/podcast/${podcast.thumbnail}`}
-              alt={podcast.headline} />
-              <div>
-                <h2>{podcast.headline}</h2>
-
-                <p>{podcast.subtitle}</p>
-                <audio controls src={`http://localhost:3001/assets/podcast/${podcast.podcast}`}></audio>
-              </div>
-            </div>
-          </div>
-
-        )}
+          <LandingPagePodcast />
 
         </main>
       </div>
