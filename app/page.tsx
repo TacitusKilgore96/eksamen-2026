@@ -122,11 +122,15 @@ export default function Home() {
               <Link href={`/subarticle/${art._id}`} key={art._id} className="relative overflow-hidden group h-64">
                 {getArticleImage(art.content) && (
                   <img 
-                    src={`http://localhost:3001/assets/images/${getArticleImage(art.content)}`} 
+                    src={`http://localhost:3001/assets/images/${getArticleImage(art.content)}`} /* via getArticleImage finder den billedet i data type'en "image" */
                     alt={art.title} 
                     className="w-full h-full object-cover"
                   />
                 )}
+                {/* via getArticleTeaser, finder den data type'en "paragraph" -> "text" */}
+                <p className="absolute inset-x-0 bottom-0 bg-black/60 px-3 py-2 text-sm text-white">
+                  {getArticleTeaser(art.content)}
+                </p>
               </Link>
             ))}
 
