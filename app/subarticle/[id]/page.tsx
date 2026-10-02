@@ -78,6 +78,7 @@ export default function SubarticlePage() {
           {article.publishedAt && new Date(article.publishedAt).toLocaleDateString("da-DK")}
         </p>
         <div>{renderContent(article.content)}</div>
+        
       </article>
       <Seneste />
       <Video />

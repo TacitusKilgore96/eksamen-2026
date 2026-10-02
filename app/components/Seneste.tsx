@@ -71,18 +71,18 @@ const Seneste = () => {
       .slice(0, 4);
 
   return (
-    <section className="space-y-3">
+    <section className="space-y-3 md:mx-auto md:w-[80%] lg:w-[100%]">
       {/* Sektionens hovedoverskrift */}
       <h2 className="text-2xl font-bold">Seneste</h2>
       
       {/* Responsivt grid-layout til de seneste artikler */}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-5 sm:grid-cols-1 lg:grid-cols-4">
         {latestArticles.map((article) => {
           const image = getArticleImage(article.content);
           const title = article.title || article.headline || "";
 
           return (
-            <Link href={`/subarticle/${article._id}`} key={article._id} className="block min-w-0">
+            <Link href={`/subarticle/${article._id}`} key={article._id} className="">
               {/* Billedvisning (renderes kun hvis et billede er til stede) */}
               {image && (
                 <img

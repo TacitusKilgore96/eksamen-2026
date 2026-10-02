@@ -62,7 +62,7 @@ export default function Home() {
 
   return (
     <div>
-      <div className="max-w-6xl mx-auto p-4">
+      <div className="mx-auto max-w-3xl px-4 py-8">
         <main className="space-y-12">
           {/* Øverste Artikel Grid (5 artikler i alt) */}
           <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -78,37 +78,48 @@ export default function Home() {
                   <img 
                     src={`http://localhost:3001/assets/images/${getArticleImage(art1.content)}`} 
                     alt={art1.title}
-                    className="w-full h-[280px] object-cover rounded" 
+                    className="w-full h-[280px] object-cover" 
                   />
                 )}
               </Link>
             )}
 
-            {/* højre kolonne Artikel 2 og 3 */}
-            <div className="flex flex-col justify-between gap-4">
-              {[art2, art3].map((art) => art && (
-                <Link href={`/subarticle/${art._id}`} key={art._id} className="flex justify-center gap-4">
-                  <div className="flex-1">
-                    <h2 className="text-lg font-bold">{art.title}</h2>
-                    <p className="text-sm text-gray-600 my-1 line-clamp-2">{getArticleTeaser(art.content)}</p>
-                    <p className="text-xs">
-                      <span className="text-amber-600 capitalize">{art.articleCategory}</span> | 25 dage siden
-                    </p>
+
+          {/* højre kolonne Artikel 2 og 3 */}
+
+          <div className="grid grid-cols-2 md:flex md:flex-col gap-4 md:pt-8">
+            {[art2, art3].map((art) => art && (
+              <Link 
+                href={`/subarticle/${art._id}`} 
+                key={art._id} 
+                className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 h-full"
+              >
+                {/* Tekst: Kommer nederst på mobil (order-2), men til venstre på desktop (md:order-1) */}
+                <div className="flex-1 flex flex-col justify-between order-2 md:order-1 h-full">
+                  <div className="md:mt-7">
+                    <h2 className="text-sm md:text-lg font-bold">{art.title}</h2>
+                    <p className="text-xs md:text-sm text-gray-600">{getArticleTeaser(art.content)}</p>
                   </div>
-                  {getArticleImage(art.content) && (
-                    <img 
-                      src={`http://localhost:3001/assets/images/${getArticleImage(art.content)}`} 
-                      alt={art.title} 
-                      className="w-36 h-24 object-cover rounded flex-shrink-0"
-                    />
-                  )}
-                </Link>
-              ))}
-            </div>
+                  <p className="text-[10px] md:text-xs mt-2">
+                    <span className="text-amber-600 capitalize">{art.articleCategory}</span> | 25 dage siden
+                  </p>
+                </div>
+
+                {/* Billede: Kommer øverst på mobil (order-1), men til højre på desktop (md:order-2) */}
+                {getArticleImage(art.content) && (
+                  <img 
+                    src={`http://localhost:3001/assets/images/${getArticleImage(art.content)}`} 
+                    alt={art.title} 
+                    className="w-full h-auto md:w-36 md:h-24 object-cover order-1 md:order-2"
+                  />
+                )}
+              </Link>
+            ))}
+          </div>
 
             {/* Nederste række i grid'et */}
             {[art4, art5].map((art) => art && (
-              <Link href={`/subarticle/${art._id}`} key={art._id} className="relative rounded overflow-hidden group h-64">
+              <Link href={`/subarticle/${art._id}`} key={art._id} className="relative overflow-hidden group h-64">
                 {getArticleImage(art.content) && (
                   <img 
                     src={`http://localhost:3001/assets/images/${getArticleImage(art.content)}`} 
@@ -116,10 +127,6 @@ export default function Home() {
                     className="w-full h-full object-cover"
                   />
                 )}
-                {/* mørk baggrund i bunden med overskrift */}
-                <div className="absolute bottom-0 inset-x-0 bg-black/80 text-white p-3">
-                  <p className="text-sm line-clamp-2">{getArticleTeaser(art.content) || art.title}</p>
-                </div>
               </Link>
             ))}
 

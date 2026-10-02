@@ -24,20 +24,20 @@ da alle 4 "type"s har data som text, title osv.
 POST✅
 PUT✅
 DELETE✅
-PATCH
 
 11: Næste skridt. Færdiggør forsiden og gå i gang med sub pages
 
 12: landingpage podcast Færdig
 videre med Seneste ✅
-landingpage videoer
+landingpage videoer✅
 
 13: sidste ting
+Lav prioritet:
 Vejr
-Podcast
+Høj Prioritet:
+Podcast✅
 Kontakt modul
--POST & PATCH contact prioritet
--DELETE contact sidste prioritet
 Responsitivitet
+Mere data i sub-article
 
 Når det er færdigt, er det i gang med dokumentation

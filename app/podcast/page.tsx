@@ -54,17 +54,16 @@ const Podcast = () => {
 
       {/* Fremhævet visning af den nyeste podcast (Hero-billede med tekst-overlay) */}
       {latestPodcast && (
-        <section className="relative mb-5 h-56 overflow-hidden sm:h-64">
+        <div className="relative mb-5 overflow-hidden">
           <img
             src="http://localhost:3001/assets/images/podcast_1.jpg"
             alt="Podcast i et lydstudie"
             className="h-full w-full object-cover"
           />
-          <div className="absolute bottom-0 right-0 bg-[#f2a900] px-5 py-4 text-white sm:max-w-[55%]">
-            <h2 className="text-lg font-bold">{latestPodcast.headline}</h2>
-            <p className="mt-1 text-sm leading-tight">{latestPodcast.subtitle || latestPodcast.info}</p>
+          <div className="absolute text-2xl bottom-5 right-5 bg-[#f2a900] p-7 text-white">
+            <p className="font-bold">Lorem ipsum dolor <br />  sit amet consectetur.</p>
           </div>
-        </section>
+        </div>
       )}
 
       {/* Liste over alle tilgængelige podcasts med scrollbar */}
