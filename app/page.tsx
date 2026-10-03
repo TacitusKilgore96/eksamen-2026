@@ -46,7 +46,7 @@ export default function Home() {
   } = useRequestData();
 
   useEffect(() => {
-    /* Henter artiklerne til forsiden, når komponenten mountes */
+    /* Henter artiklerne til forsiden, når siden indlæses */
     makeArticleRequest<landingArticle[]>("/article/landingpage", "GET");
   }, [makeArticleRequest]);
 

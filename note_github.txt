@@ -1,4 +1,4 @@
-1. lav ny repository, navngiv efter projektet
+1. laver ny repository, navngiv efter projektet
 
 2. git add .
 
