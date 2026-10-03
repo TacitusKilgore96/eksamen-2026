@@ -34,6 +34,7 @@ landingpage videoer✅
 13: sidste ting
 Lav prioritet:
 Vejr❌
+Nyheder❌
 Høj Prioritet:
 Podcast✅
 Kontakt modul✅
