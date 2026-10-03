@@ -33,11 +33,11 @@ landingpage videoer✅
 
 13: sidste ting
 Lav prioritet:
-Vejr
+Vejr❌
 Høj Prioritet:
 Podcast✅
-Kontakt modul
-Responsitivitet
-Mere data i sub-article
+Kontakt modul✅
+Responsitivitet✅
+Mere data i sub-article❌
 
 Når det er færdigt, er det i gang med dokumentation
