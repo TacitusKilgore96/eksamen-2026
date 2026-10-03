@@ -18,9 +18,9 @@ skaber projekt med: Next, Tailwind, TypeScript,
 EDIT: data hentet 🙃 holy moly
 En data struktur som jeg ikke er vandt til, har taget lidt længere end forventet...
 var nød til at dele /article/landingpage op i dens 4 types; paragraph, main, image, link
-da alle 4 "type"s har data som text, title osv.
+da alle 4 "type"s har data som text, title osv. 2 timer blev forvanlet til godt over 6 timer
 
-10. går i gang med admin page til artiklerne 2 timer estimeret (tættere på 6)
+10. går i gang med admin page til artiklerne
 POST✅
 PUT✅
 DELETE✅
